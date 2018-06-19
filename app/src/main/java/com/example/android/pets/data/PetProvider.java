@@ -14,7 +14,7 @@ import android.util.Log;
 
 import com.example.android.pets.data.PetContract.PetEntry;
 
-public final class PetProvider extends ContentProvider {
+public class PetProvider extends ContentProvider {
 
     /** Tag for the log messages */
     public static final String LOG_TAG = PetProvider.class.getSimpleName();
