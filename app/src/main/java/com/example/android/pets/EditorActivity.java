@@ -47,8 +47,6 @@ import java.net.URI;
  */
 public class EditorActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
 
-    //private PetDbHelper mDbHelper;
-
     /** EditText field to enter the pet's name */
     private EditText mNameEditText;
 
@@ -67,9 +65,9 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
      */
     private int mGender = PetEntry.GENDER_UNKNOWN;
 
-    private int LOADER_ID = 0;
+    private static final int LOADER_ID = 0;
 
-    private Uri selectedPetUri;
+    private Uri mCurrentPetUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,14 +78,16 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         setContentView(R.layout.activity_editor);
 
         Intent intent = getIntent();
-        selectedPetUri = intent.getData();
+        mCurrentPetUri = intent.getData();
 
-        if (selectedPetUri == null) {
+        if (mCurrentPetUri == null) {
             setTitle("Add new pet");
         } else {
             setTitle("Edit pet");
-        }
 
+
+        }
+        //TO-DO: put into above else statement
         getLoaderManager().initLoader(LOADER_ID, null, this);
 
         // Find all relevant views that we will need to read user input from
@@ -139,7 +139,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         });
     }
 
-    private void insertPet(){
+    private void savePet(){
 
         String nameString = mNameEditText.getText().toString().trim();
         String breedString = mBreedEditText.getText().toString().trim();
@@ -152,13 +152,24 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         values.put(PetEntry.COLUMN_PET_GENDER, genderInt);
         values.put(PetEntry.COLUMN_PET_WEIGHT, weightInt);
 
-        Uri newRowUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+        if (mCurrentPetUri == null) {
+            Uri newRowUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
 
-        if (newRowUri == null){
-            Toast.makeText(this, "Error adding pet",
-                    Toast.LENGTH_LONG).show();
+            if (newRowUri == null){
+                Toast.makeText(this, "Error adding pet",
+                        Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Successfully added pet",
+                        Toast.LENGTH_LONG).show();
+            }
         } else {
-            Toast.makeText(this, "Successfully added pet", Toast.LENGTH_LONG).show();
+            int linesUpdated = getContentResolver().update(mCurrentPetUri, values, null, null);
+            if (linesUpdated == 0){
+                Toast.makeText(this, "Error updating pet",
+                        Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Successfully updated pet", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -176,8 +187,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         switch (item.getItemId()) {
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                insertPet();
-
+                savePet();
                 finish();
                 return true;
             // Respond to a click on the "Delete" menu option
@@ -195,13 +205,14 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        String[] projection = {PetEntry._ID,
+        String[] projection = {
+                PetEntry._ID,
                 PetEntry.COLUMN_PET_NAME,
                 PetEntry.COLUMN_PET_BREED,
                 PetEntry.COLUMN_PET_GENDER,
                 PetEntry.COLUMN_PET_WEIGHT};
         return new CursorLoader(this,
-                selectedPetUri,
+                mCurrentPetUri,
                 projection,
                 null,
                 null,
@@ -211,7 +222,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
 
-        if (cursor != null || cursor.getCount() < 1){
+        if (cursor == null || cursor.getCount() < 1){
             return;
         }
 
